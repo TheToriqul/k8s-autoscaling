@@ -1,0 +1,61 @@
+# This HorizontalPodAutoscaler (HPA) configuration automatically scales the NGINX deployment based on CPU utilization and memory consumption metrics.
+
+apiVersion: autoscaling/v2    # Using v2 API version which supports multiple metrics
+kind: HorizontalPodAutoscaler # Resource type for automatic horizontal scaling
+metadata:
+  name: nginx                 # Name of the HPA resource, matching the deployment name
+spec:
+  # Reference to the target resource to scale
+  scaleTargetRef:
+    apiVersion: apps/v1      # API version of the target resource (Deployment)
+    kind: Deployment         # Type of resource to scale
+    name: nginx             # Name of the target deployment to scale
+  
+  # Scaling limits
+  minReplicas: 3            # Minimum number of pods, even during low load
+  maxReplicas: 10           # Maximum number of pods, even during high load
+  
+  # Metrics used to determine scaling decisions
+  metrics:
+  # CPU-based scaling metric
+  - type: Resource          # Using a resource metric (CPU/Memory)
+    resource:
+      name: cpu            # CPU resource metric
+      target:
+        # Utilization type means percentage of requested CPU
+        type: Utilization  
+        # Target CPU utilization percentage
+        # Will attempt to maintain average CPU utilization across all pods at 65%
+        # Formula: (actual CPU usage / CPU request) * 100
+        averageUtilization: 65
+  
+  # Memory-based scaling metric
+  - type: Resource          # Second resource metric
+    resource:
+      name: memory         # Memory resource metric
+      target:
+        # AverageValue type means absolute value rather than percentage
+        type: AverageValue
+        # Target memory value (1Gi = 1 Gibibyte = 1,073,741,824 bytes)
+        # Will attempt to maintain average memory usage across all pods at 1Gi
+        averageValue: 1Gi
+
+# Important Notes:
+# 1. Scaling Behavior:
+#    - HPA checks metrics every 15 seconds (default)
+#    - Scales up quickly when metrics exceed targets
+#    - Scales down gradually to prevent oscillation
+#
+# 2. CPU Scaling (Target Utilization):
+#    - Based on percentage of requested CPU (50m in deployment)
+#    - 65% of 50m = ~32.5m target per pod
+#    - Will scale up if average CPU usage exceeds this target
+#
+# 3. Memory Scaling (Target Average):
+#    - Based on absolute value (1Gi)
+#    - Independent of memory requests in deployment
+#    - Will scale up if average memory usage exceeds 1Gi
+#
+# 4. Multiple Metrics:
+#    - HPA will scale based on the metric that would result in the highest replica count
+#    - Ensures both CPU and memory requirements are met

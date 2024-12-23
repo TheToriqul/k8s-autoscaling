@@ -1,0 +1,61 @@
+# This deployment configuration creates and manages NGINX pods with defined resource constraints and scaling parameters.
+
+apiVersion: apps/v1    # Kubernetes API version for Deployment objects
+kind: Deployment       # Type of Kubernetes resource
+metadata:
+  name: nginx         # Name of the deployment
+spec:
+  # Number of pod replicas to maintain
+  # Initial setting of 2 replicas - this will be adjusted by HPA based on load
+  replicas: 2        
+  
+  # Label selector for pods managed by this deployment
+  # Must match the pod template labels below
+  selector:
+    matchLabels:
+      app: nginx
+  
+  # Template for the pods that will be created by this deployment
+  template:
+    metadata:
+      # Labels attached to the pods
+      # Used for service discovery and selection
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx                     # Container name
+        image: nginx                    # Using latest NGINX image by default
+        
+        # Resource requirements and limits
+        # These values are crucial for HPA to function properly
+        resources:
+          # Resource requests - minimum resources needed
+          requests:
+            # Memory request - guaranteed minimum memory allocation
+            # 64Mi = 64 Mebibytes = 67,108,864 bytes
+            memory: "64Mi"              
+            
+            # CPU request - guaranteed minimum CPU allocation
+            # 50m = 50 millicores = 0.05 CPU cores
+            # 1000m = 1 CPU core
+            cpu: "50m"                  
+          
+          # Resource limits - maximum allowed resource usage
+          limits:
+            # Memory limit - container will be terminated if exceeded
+            # 128Mi = 128 Mebibytes = 134,217,728 bytes
+            memory: "128Mi"             
+            
+            # CPU limit - container CPU usage will be throttled if exceeded
+            # 100m = 100 millicores = 0.1 CPU cores
+            cpu: "100m"                 
+
+# Note on Resource Configuration:
+# - Requests: The minimum resources that the container needs to run
+# - Limits: The maximum resources that the container is allowed to use
+# These values are important for:
+# 1. Scheduling decisions by the Kubernetes scheduler
+# 2. HPA calculations for scaling decisions
+# 3. Resource isolation between pods
+# 4. Cost optimization in cloud environments
